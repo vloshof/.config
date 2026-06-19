@@ -1,46 +1,54 @@
 {
-    "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
-    "logo": {
-        "type": "kitty",
-        "source": "/home/vloshof/.config/fastfetch/niri.png",
-        "width": 20,
-        "height": 12,
-        "padding": {
-            "top": 2,
-            "left": 2
-        }
+    "layer": "top",
+    "position": "top",
+    "height": 32,
+    "spacing": 0,
+    
+    "modules-left": [],
+    "modules-center": [],
+    "modules-right": [
+        "wireplumber",
+        "network",
+        "battery",
+        "clock#date",
+        "clock#time",
+        "custom-power"
+    ],
+    
+    "wireplumber": {
+        "format": " Vol: {volume}% ",
+        "format-muted": " MUTE "
     },
-    "display": {
-    "separator": " ",
-    "color": {
-        "keys": "38;2;140;170;238"
+
+    "network": {
+        "format-wifi": " Wifi: {essid} ",
+        "format-ethernet": " Filaire ",
+        "format-disconnected": " Déconnecté "
+    },
+
+    "battery": {
+        "states": {
+            "warning": 30,
+            "critical": 15
+        },
+        "format": " Bat: {capacity}% ",
+        "format-charging": " Charge: {capacity}% "
+    },
+
+    // La date (via le module horloge natif)
+    "clock#date": {
+        "format": " {:%d/%m} "
+    },
+
+    // L'heure
+    "clock#time": {
+        "format": " {:%H:%M} "
+    },
+
+    // Le bouton éteindre réajusté
+    "custom-power": {
+        "format": " ⏻ ",
+        "on-click": "echo -e 'Éteindre\nRedémarrer\nDéconnexion' | fuzzel --dmenu | xargs -I {} bash -c \"if [ '{}' = 'Éteindre' ]; then sudo poweroff; elif [ '{}' = 'Redémarrer' ]; then sudo reboot; elif [ '{}' = 'Déconnexion' ]; then niri msg action quit; fi\"",
+        "tooltip": false
     }
-},
-    "modules": [
-        {
-    "type": "title",
-    "color": {
-        "user": "38;2;197;208;245",
-        "at": "38;2;81;87;109",
-        "host": "38;2;140;170;238"
-    }
-},
-        { "type": "separator", "string": "─", "color": "38;2;129;200;190" },
-        { "type": "os", "key": "OS       │" },
-        { "type": "kernel", "key": "Kernel   │" },
-        { "type": "packages", "key": "Packages │" },
-        { "type": "shell", "key": "Shell    │" },
-        { "type": "separator", "string": "─", "color": "38;2;129;200;190" },
-        { "type": "datetime", "key": "Date     │", "format": "{1}-{3}-{11}" },
-        { "type": "de", "key": "DE       │" },
-        { "type": "wm", "key": "WM       │" },
-        { "type": "lm", "key": "LM       │" },
-        { "type": "theme", "key": "Theme    │" },
-        { "type": "icons", "key": "Icons    │" },
-        { "type": "separator", "string": "─", "color": "38;2;129;200;190" },
-        { "type": "cpu", "key": "CPU      │" },
-        { "type": "gpu", "key": "GPU      │" },
-        { "type": "memory", "key": "Memory   │" },
-        { "type": "separator", "string": "─", "color": "38;2;129;200;190" }
-    ]
 }
