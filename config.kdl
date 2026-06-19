@@ -1,0 +1,180 @@
+spawn-at-startup "swaybg" "-m" "fill" "-i" "/home/vloshof/Images/walls/wall2.png"
+spawn-at-startup "waybar" "-c" "/home/vloshof/.config/waybar/config.jsonc" "-s" "/home/vloshof/.config/waybar/style.css"
+
+// Configuration de la disposition des écrans (Deuxième écran EN HAUT)
+output "eDP-1" {
+    position x=0 y=0
+}
+
+output "HDMI-A-1" {
+    position x=0 y=-1080
+}
+
+// --------------------------------------------------------
+// RÈGLES DE FENÊTRES ET DE CALQUES (Window & Layer Rules)
+// --------------------------------------------------------
+
+// Règle globale : Coins carrés pour toutes les fenêtres
+window-rule {
+    geometry-corner-radius 0
+    clip-to-geometry true 
+}
+
+// Règle spécifique pour Thunar : Transparence à 75%
+window-rule {
+    match app-id="thunar"
+    
+    opacity 0.75
+    default-column-width { proportion 0.5; }
+}
+
+// Règle spécifique pour Kitty : On laisse Kitty gérer sa propre opacité
+window-rule {
+    match app-id="kitty"
+}
+
+// Règle pour les calques (Fonds d'écran animés / Spécifiques)
+layer-rule {
+    match namespace="^noctalia-wallpaper*" 
+    place-within-backdrop true 
+}
+
+// Activer le flou en arrière-plan du lanceur Fuzzel
+layer-rule {
+    match namespace="^launcher$"
+    background-effect {
+        blur true
+    }
+}
+
+// --------------------------------------------------------
+// RACCOURCIS CLAVIERS (Binds)
+// --------------------------------------------------------
+binds {
+    // Raccourci pour fermer la fenêtre active avec l'effet CRT
+    Super+Q { close-window; }
+
+    "Mod+Shift+F23" { spawn "kitty"; }
+    Super+Space { spawn "fuzzel" "--namespace" "launcher"; }
+    Super+Shift+E { quit; }
+    Super+B { spawn "brave-browser-stable"; }
+    Super+E { spawn "thunar"; } 
+    Super+V { spawn "protonvpn-app"; }
+    Super+Z { spawn "flatpak" "run" "com.rtosta.zapzap"; }
+
+    // Gestion du son adaptée pour WirePlumber (Solus)
+    XF86AudioMute allow-when-locked=true { spawn "wpctl" "set-mute" "@DEFAULT_SINK@" "toggle"; }
+    XF86AudioRaiseVolume allow-when-locked=true { spawn "wpctl" "set-volume" "@DEFAULT_SINK@" "5%+"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn "wpctl" "set-volume" "@DEFAULT_SINK@" "5%-"; }
+
+    // Gestion de la luminosité avec l'outil 'light' de Solus
+    XF86MonBrightnessUp allow-when-locked=true { spawn "light" "-A" "10"; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn "light" "-U" "10"; }
+
+    Super+Shift+S { spawn "bash" "-c" "grim -g \"$(slurp)\" - | wl-copy"; }
+    Super+Print { spawn "bash" "-c" "grim - | wl-copy"; }
+    
+    // Capture une zone, l'enregistre dans Images ET la copie dans le presse-papiers
+    Print { spawn "bash" "-c" "grim -g \"$(slurp)\" - | tee ~/Images/Screenshot_$(date +%Y%m%d_%H%M%S).png | wl-copy"; }
+
+    // Capture tout l'écran, l'enregistre dans Images ET la copie dans le presse-papiers
+    Alt+Print { spawn "bash" "-c" "grim - | tee ~/Images/Screenshot_$(date +%Y%m%d_%H%M%S).png | wl-copy"; }
+    
+    // DÉFILEMENT INFINI À LA SOURIS (Actions natives de boucle)
+    Super+WheelScrollUp      { focus-column-left-or-last; }
+    Super+WheelScrollDown    { focus-column-right-or-first; }
+    
+    Super+Shift+WheelScrollUp   { focus-workspace-up; }
+    Super+Shift+WheelScrollDown { focus-workspace-down; }
+}
+
+input {
+    focus-follows-mouse
+}
+
+layout {
+    gaps 15
+    center-focused-column "never"
+
+    preset-column-widths {
+        proportion 0.33333
+        proportion 0.5
+        proportion 0.66667
+    }
+
+    default-column-width { proportion 0.5; }
+
+    focus-ring {
+        width 5
+        active-color "#D3B6F2"
+        inactive-color "#F2B6F2"
+    }
+
+    border {
+        off
+    }
+}
+
+animations {
+    workspace-switch {
+        spring damping-ratio=1.0 stiffness=1000 epsilon=0.0001
+    }
+
+    window-open {
+        duration-ms 250
+        curve "ease-out-quad"
+    }
+
+    // Effet CRT personnalisé via Shader Niri
+    window-close {
+        custom-shader r#"
+            void close_main() {
+                // Déformation CRT : on écrase progressivement la coordonnée Y 
+                // à mesure que le progrès de l'animation avance vers 1.0
+                float progress = niri_clamped_progress;
+                
+                // Compression verticale de la texture
+                vec2 uv = niri_texcoord;
+                uv.y = (uv.y - 0.5) / max(1.0 - progress * 1.1, 0.001) + 0.5;
+                
+                // Si on sort des limites compressées, on affiche du noir/vide
+                if (uv.y < 0.0 || uv.y > 1.0) {
+                    discard;
+                }
+                
+                // On applique la couleur et on fait flasher un peu en blanc vers la fin
+                vec4 color = texture2D(niri_texture, uv);
+                color.rgb += vec3(progress * 0.3); 
+                color.a *= (1.0 - progress);
+                
+                gl_FragColor = color;
+            }
+        "#
+        duration-ms 600
+    }
+
+    horizontal-view-movement {
+        spring damping-ratio=1.0 stiffness=900 epsilon=0.0001
+    }
+
+    window-movement {
+        spring damping-ratio=1.0 stiffness=800 epsilon=0.0001
+    }
+
+    window-resize {
+        spring damping-ratio=1.0 stiffness=1000 epsilon=0.0001
+    }
+
+    config-notification-open-close {
+        spring damping-ratio=0.6 stiffness=1200 epsilon=0.001
+    }
+
+    screenshot-ui-open {
+        duration-ms 300
+        curve "ease-out-quad"
+    }
+
+    overview-open-close {
+        spring damping-ratio=1.0 stiffness=900 epsilon=0.0001
+    }
+}
